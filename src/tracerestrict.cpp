@@ -1242,6 +1242,10 @@ void TraceRestrictProgram::Execute(const Train *v, const TraceRestrictProgramInp
 						}
 						break;
 
+					case TRIT_DIVERGING_CONTROL:
+						out.flags |= TRPRF_DIVERGING;
+						break;
+
 					default:
 						NOT_REACHED();
 				}
@@ -1901,6 +1905,10 @@ CommandCost TraceRestrictProgram::Validate(const std::span<const TraceRestrictPr
 						default:
 							return unknown_instruction();
 					}
+					break;
+
+				case TRIT_DIVERGING_CONTROL:
+					actions_used_flags |= TRPAUF_DIVERGING_CONTROL;
 					break;
 
 				default:

@@ -71,6 +71,8 @@ struct TrainReservationLookAheadItem {
 	uint16_t data_aux;
 	TrainReservationLookAheadItemType type;
 	/* gap: 1 byte */
+	TileIndex signal_tile = INVALID_TILE;
+	Trackdir signal_trackdir = INVALID_TRACKDIR;
 };
 
 struct TrainReservationLookAheadCurve {
@@ -133,10 +135,10 @@ struct TrainReservationLookAhead {
 		this->speed_restriction = speed;
 	}
 
-	void AddSignal(uint16_t target_speed, int offset, int16_t z_pos, uint16_t flags)
+	void AddSignal(uint16_t target_speed, int offset, int16_t z_pos, uint16_t flags, TileIndex tile = INVALID_TILE, Trackdir trackdir = INVALID_TRACKDIR)
 	{
 		int32_t end = this->RealEndPosition();
-		this->items.push_back({ end + offset, end + offset, z_pos, target_speed, flags, TRLIT_SIGNAL });
+		this->items.push_back({ end + offset, end + offset, z_pos, target_speed, flags, TRLIT_SIGNAL, tile, trackdir });
 	}
 
 	void AddCurveSpeedLimit(uint16_t target_speed, int offset, int16_t z_pos)

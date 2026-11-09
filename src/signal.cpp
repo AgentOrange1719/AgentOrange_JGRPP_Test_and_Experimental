@@ -1654,6 +1654,66 @@ void FlushDeferredAspectUpdates()
 	_deferred_aspect_updates.clear();
 }
 
+static void SetRailSignalDivergingState(TileIndex tile, Trackdir trackdir, SignalDivergingState state)
+{
+	if (!IsTileType(tile, TileType::Railway) || !HasSignalOnTrackdir(tile, trackdir)) return;
+
+	Track track = TrackdirToTrack(trackdir);
+	SignalDivergingState old_state = GetSignalDivergingState(tile, track);
+	if (old_state == state) return;
+
+	SetSignalDivergingState(tile, track, state);
+	if (state == SignalDivergingState::None && GetSignalStateByTrackdir(tile, trackdir) == SignalState::Green) {
+		/* Recalculate the ordinary aspect after releasing a route-controlled hold. */
+		SetSignalAspect(tile, track, 0);
+		UpdateAspectDeferred(tile, trackdir);
+	}
+	MarkSingleSignalDirty(tile, trackdir);
+}
+
+static void DetermineDivergingAspectsWithLookahead(Train *v)
+{
+	if (v->lookahead == nullptr) return;
+
+	std::vector<TrainReservationLookAheadItem *> signals;
+	for (TrainReservationLookAheadItem &item : v->lookahead->items) {
+		if (item.type != TRLIT_SIGNAL || item.signal_tile == INVALID_TILE || item.signal_trackdir == INVALID_TRACKDIR) continue;
+		if (!IsTileType(item.signal_tile, TileType::Railway) || !HasSignalOnTrackdir(item.signal_tile, item.signal_trackdir)) continue;
+		signals.push_back(&item);
+	}
+	if (signals.empty()) return;
+
+	std::vector<SignalDivergingState> desired(signals.size(), SignalDivergingState::None);
+	auto set_desired = [&](size_t index, SignalDivergingState state) {
+		if (desired[index] == SignalDivergingState::None || to_underlying(state) < to_underlying(desired[index])) desired[index] = state;
+	};
+
+	for (size_t i = 0; i < signals.size(); i++) {
+		TrainReservationLookAheadItem &item = *signals[i];
+		const TraceRestrictProgram *prog = GetExistingTraceRestrictProgram(item.signal_tile, TrackdirToTrack(item.signal_trackdir));
+		if (prog == nullptr || !(prog->actions_used_flags & TRPAUF_DIVERGING_CONTROL)) continue;
+
+		TraceRestrictProgramResult out;
+		TraceRestrictProgramInput input(item.signal_tile, item.signal_trackdir, [](const Train *v, const void *, TraceRestrictPBSEntrySignalAuxField mode) {
+			return mode == TRPESAF_RES_END_TILE ? v->lookahead->reservation_end_tile : INVALID_TILE;
+		}, nullptr);
+		prog->Execute(v, input, out);
+		if (!(out.flags & TRPRF_DIVERGING)) continue;
+
+		set_desired(i, SignalDivergingState::Controlling);
+		SignalDivergingState approach_state = SignalDivergingState::FirstApproach;
+		for (size_t j = i; j-- > 0 && approach_state <= SignalDivergingState::SecondApproach;) {
+			if (HasBit(signals[j]->data_aux, TRSLAI_NO_ASPECT_INC)) continue;
+			set_desired(j, approach_state);
+			approach_state = static_cast<SignalDivergingState>(to_underlying(approach_state) + 1);
+		}
+	}
+
+	for (size_t i = 0; i < signals.size(); i++) {
+		SetRailSignalDivergingState(signals[i]->signal_tile, signals[i]->signal_trackdir, desired[i]);
+	}
+}
+
 static void SetCombinedNormalShuntModeSignalToShunt(TileIndex tile, Trackdir trackdir)
 {
 	if (IsTileType(tile, TileType::TunnelBridge)) {
@@ -1792,6 +1852,8 @@ void FlushDeferredDetermineCombineNormalShuntMode(Train *v)
 		DetermineCombineNormalShuntModeWithLookahead(v, iter.tile, iter.trackdir, iter.lookahead_position);
 	}
 	_deferred_lookahead_combined_normal_shunt_mode.clear();
+
+	DetermineDivergingAspectsWithLookahead(v);
 
 	for (const auto &iter : _deferred_determine_combined_normal_shunt_mode) {
 		/* Reservation with no associated lookahead, default to a shunt route */

@@ -983,6 +983,7 @@ STR_TRACE_RESTRICT_COUNTER_OP                                   :Counter operati
 STR_TRACE_RESTRICT_PF_PENALTY_CONTROL                           :Penalty config
 STR_TRACE_RESTRICT_SPEED_ADAPTATION_CONTROL                     :Speed adap. control
 STR_TRACE_RESTRICT_SIGNAL_MODE_CONTROL                          :Signal mode control
+STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL                     :Diverging aspect control
 STR_TRACE_RESTRICT_SLOT_ACQUIRE_WAIT                            :Acquire or wait
 STR_TRACE_RESTRICT_SLOT_TRY_ACQUIRE                             :Try to acquire
 STR_TRACE_RESTRICT_SLOT_RELEASE_FRONT                           :Release (front)

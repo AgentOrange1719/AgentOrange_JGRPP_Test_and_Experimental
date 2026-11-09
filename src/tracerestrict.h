@@ -202,6 +202,7 @@ enum TraceRestrictItemType : uint8_t {
 	TRIT_SPEED_ADAPTATION_CONTROL = 53,   ///< Control speed adaptation
 	TRIT_SIGNAL_MODE_CONTROL      = 54,   ///< Control signal modes
 	TRIT_SLOT_GROUP               = 55,   ///< Slot group operation
+	TRIT_DIVERGING_CONTROL        = 56,   ///< Activate diverging aspect control
 
 	/* space up to 63 */
 };
@@ -805,6 +806,7 @@ enum TraceRestrictProgramResultFlags : uint16_t {
 	TRPRF_SIGNAL_MODE_NORMAL      = 1 << 11, ///< Combined normal/shunt signal mode control: normal
 	TRPRF_SIGNAL_MODE_SHUNT       = 1 << 12, ///< Combined normal/shunt signal mode control: shunt
 	TRPRF_REVERSE_AT              = 1 << 13, ///< Reverse at PBS signal is set
+	TRPRF_DIVERGING               = 1 << 14, ///< Diverging aspect control is active
 };
 DECLARE_ENUM_AS_BIT_SET(TraceRestrictProgramResultFlags)
 
@@ -837,6 +839,7 @@ enum TraceRestrictProgramActionsUsedFlags : uint32_t {
 	TRPAUF_COUNTER_CONDITIONALS   = 1 << 21, ///< Counter conditionals are present
 	TRPAUF_IS_BACKUP              = 1 << 22, ///< This program is a backup
 	TRPAUF_DRIVE_DIR_CONDITIONALS = 1 << 23, ///< Driving direction conditionals are present
+	TRPAUF_DIVERGING_CONTROL      = 1 << 24, ///< Diverging aspect control action is present
 };
 DECLARE_ENUM_AS_BIT_SET(TraceRestrictProgramActionsUsedFlags)
 
@@ -1322,6 +1325,10 @@ inline TraceRestrictTypePropertySet GetTraceRestrictTypeProperties(TraceRestrict
 
 			case TRIT_SIGNAL_MODE_CONTROL:
 				out.value_type = TRVT_SIGNAL_MODE_CONTROL;
+				break;
+
+			case TRIT_DIVERGING_CONTROL:
+				out.value_type = TRVT_NONE;
 				break;
 
 			case TRIT_SLOT_GROUP:

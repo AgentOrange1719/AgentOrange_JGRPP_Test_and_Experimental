@@ -407,9 +407,9 @@ static uint16_t GetTrainSpeedLimitForRailtype(const Train *consist, RailType rt,
 	return speed;
 }
 
-static void AddSignalToLookAhead(TrainReservationLookAhead *lookahead, uint16_t signal_speed, uint16_t signal_flags, TileIndex signal_tile, uint16_t signal_track, int offset, int16_t z_pos)
+static void AddSignalToLookAhead(TrainReservationLookAhead *lookahead, uint16_t signal_speed, uint16_t signal_flags, TileIndex signal_tile, uint16_t signal_track, int offset, int16_t z_pos, Trackdir signal_trackdir = INVALID_TRACKDIR)
 {
-	lookahead->AddSignal(signal_speed, offset, z_pos, signal_flags);
+	lookahead->AddSignal(signal_speed, offset, z_pos, signal_flags, signal_trackdir != INVALID_TRACKDIR ? signal_tile : INVALID_TILE, signal_trackdir);
 	if (_settings_game.vehicle.train_speed_adaptation) {
 		lookahead->AddSpeedAdaptation(signal_tile, signal_track, offset, z_pos);
 	}
@@ -695,7 +695,7 @@ static PBSTileInfo FollowReservation(Owner o, RailTypes rts, TileIndex tile, Tra
 						SetBit(signal_flags, TRSLAI_COMBINED);
 						UpdateLookaheadCombinedNormalShuntSignalDeferred(tile, trackdir, lookahead->RealEndPosition());
 					}
-					AddSignalToLookAhead(lookahead, signal_speed, signal_flags, tile, TrackdirToTrack(trackdir), 0, z);
+					AddSignalToLookAhead(lookahead, signal_speed, signal_flags, tile, TrackdirToTrack(trackdir), 0, z, trackdir);
 					lookahead->SetNextExtendPositionIfUnset();
 				}
 			}

@@ -2279,6 +2279,7 @@ class NIHTraceRestrict : public NIHelper {
 		CA(COUNTER_CONDITIONALS)
 		CA(IS_BACKUP)
 		CA(DRIVE_DIR_CONDITIONALS)
+		CA(DIVERGING_CONTROL)
 #undef CA
 		output.Print("");
 

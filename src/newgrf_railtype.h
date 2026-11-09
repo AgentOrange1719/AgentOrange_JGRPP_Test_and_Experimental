@@ -68,7 +68,8 @@ struct CustomSignalSpriteResult {
 
 SpriteID GetCustomRailSprite(const RailTypeInfo *rti, TileIndex tile, RailSpriteType rtsg, TileContext context = TileContext::Normal, uint *num_results = nullptr);
 CustomSignalSpriteResult GetCustomSignalSprite(const RailTypeInfo *rti, TileIndex tile, SignalType type, SignalVariant var, uint8_t aspect,
-		CustomSignalSpriteContext context, uint8_t style, const TraceRestrictProgram *prog = nullptr, uint z = 0);
+		CustomSignalSpriteContext context, uint8_t style, const TraceRestrictProgram *prog = nullptr, uint z = 0,
+		SignalDivergingState diverging_state = SignalDivergingState::None);
 
 RailType GetRailTypeTranslation(uint8_t railtype, const GRFFile *grffile);
 uint8_t GetReverseRailTypeTranslation(RailType railtype, const GRFFile *grffile);

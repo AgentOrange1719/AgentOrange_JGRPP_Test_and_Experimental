@@ -421,9 +421,31 @@ inline void SetSignalVariant(TileIndex t, Track track, SignalVariant v)
 	if (track == INVALID_TRACK) SB(_m[t].m2, 7, 1, to_underlying(v));
 }
 
+inline SignalDivergingState GetSignalDivergingState(TileIndex t, Track track)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 14 : 12;
+	return static_cast<SignalDivergingState>(GB(_me[t].m8, pos, 2));
+}
+
+inline void SetSignalDivergingState(TileIndex t, Track track, SignalDivergingState state)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 14 : 12;
+	SB(_me[t].m8, pos, 2, to_underlying(state));
+}
+
 inline uint8_t GetSignalAspect(TileIndex t, Track track)
 {
 	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	SignalDivergingState diverging_state = GetSignalDivergingState(t, track);
+	if (diverging_state != SignalDivergingState::None) {
+		uint8_t aspect = to_underlying(diverging_state);
+		uint8_t style_pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 4 : 0;
+		uint8_t style = GB(_me[t].m6, style_pos, 4);
+		if (HasBit(_signal_style_masks.combined_normal_shunt, style)) aspect++;
+		return aspect;
+	}
 	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 3 : 0;
 	return GB(_me[t].m7, pos, 3);
 }
@@ -614,6 +636,7 @@ inline void SetSignalStateByTrackdir(TileIndex tile, Trackdir trackdir, SignalSt
 		SetSignalStates(tile, GetSignalStates(tile) | SignalAlongTrackdir(trackdir));
 	} else {
 		SetSignalStates(tile, GetSignalStates(tile) & ~SignalAlongTrackdir(trackdir));
+		SetSignalDivergingState(tile, TrackdirToTrack(trackdir), SignalDivergingState::None);
 	}
 }
 

@@ -62,6 +62,14 @@ enum class SignalState : uint8_t {
 	End, ///< End marker.
 };
 
+/** Route-controlled diverging aspect state. */
+enum class SignalDivergingState : uint8_t {
+	None = 0,       ///< Normal signal aspect handling.
+	Controlling,    ///< Signal protecting the diverging route.
+	FirstApproach,  ///< First signal preceding the controlling signal.
+	SecondApproach, ///< Second signal preceding the controlling signal.
+};
+
 /** Signal groups to cycle through. */
 enum SignalCycleGroups : uint8_t {
 	SCG_CURRENT_GROUP = 0,

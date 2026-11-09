@@ -3375,7 +3375,8 @@ void DrawSingleSignal(TileIndex tile, const RailTypeInfo *rti, Track track, Sign
 
 	const uint z = GetSafeSlopeZ(x, y, track);
 
-	const CustomSignalSpriteResult result = GetCustomSignalSprite(rti, tile, type, variant, aspect, context, style, prog, z);
+	const SignalDivergingState diverging_state = context.ctx_mode == CSSC_TRACK ? GetSignalDivergingState(tile, track) : SignalDivergingState::None;
+	const CustomSignalSpriteResult result = GetCustomSignalSprite(rti, tile, type, variant, aspect, context, style, prog, z, diverging_state);
 	SpriteID sprite = result.sprite.sprite;
 	PaletteID pal = PAL_NONE;
 	bool is_custom_sprite = (sprite != 0);

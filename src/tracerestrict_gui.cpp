@@ -645,6 +645,7 @@ static std::span<const TraceRestrictDropDownListItem> GetActionDropDownListItems
 		{ TRIT_COUNTER,                  STR_TRACE_RESTRICT_COUNTER_OP,               TRDDLIF_ADVANCED },
 		{ TRIT_SPEED_ADAPTATION_CONTROL, STR_TRACE_RESTRICT_SPEED_ADAPTATION_CONTROL, TRDDLIF_ADVANCED | TRDDLIF_SPEED_ADAPTATION },
 		{ TRIT_SIGNAL_MODE_CONTROL,      STR_TRACE_RESTRICT_SIGNAL_MODE_CONTROL,      TRDDLIF_ADVANCED | TRDDLIF_NORMAL_SHUNT_SIGNAL_STYLE },
+		{ TRIT_DIVERGING_CONTROL,        STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL, TRDDLIF_ADVANCED | TRDDLIF_REALISTIC_BRAKING },
 		{ TRIT_GUI_LABEL,                STR_TRACE_RESTRICT_GUI_LABEL,                TRDDLIF_NONE },
 	};
 	return std::span<const TraceRestrictDropDownListItem>(actions);
@@ -2246,6 +2247,10 @@ static void FillInstructionString(format_buffer &instruction_string, const Trace
 						NOT_REACHED();
 						break;
 				}
+				break;
+
+			case TRIT_DIVERGING_CONTROL:
+				set_instruction(STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL);
 				break;
 
 			default:
