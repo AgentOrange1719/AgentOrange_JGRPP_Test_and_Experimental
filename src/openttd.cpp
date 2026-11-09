@@ -67,6 +67,7 @@
 #include "hotkeys.h"
 #include "newgrf.h"
 #include "newgrf_commons.h"
+#include "newgrf_newsignals.h"
 #include "misc/getoptdata.h"
 #include "game/game.hpp"
 #include "game/game_config.hpp"
@@ -1530,6 +1531,24 @@ void WriteVehicleInfo(format_target &buffer, const Vehicle *u, const Vehicle *v,
 }
 
 /**
+ * Redraw interval for custom NewGRF signal animation, in game ticks.
+ *
+ * NewGRFs can select signal sprites using global variable 0x0A (animation
+ * counter), but signals are normally redrawn only when their state changes.
+ * Four ticks gives GRFs a 108 ms timing quantum without redrawing the world
+ * viewport every game tick.
+ */
+static constexpr uint NEWGRF_SIGNAL_ANIMATION_REDRAW_INTERVAL = 4;
+
+static void UpdateNewGRFSignalAnimation()
+{
+	if (_game_mode != GameMode::Normal || _new_signals_grfs.empty()) return;
+	if ((_scaled_tick_counter % NEWGRF_SIGNAL_ANIMATION_REDRAW_INTERVAL) != 0) return;
+
+	MarkWholeNonMapViewportsDirty();
+}
+
+/**
  * State controlling game loop.
  * The state must not be changed from anywhere but here.
  * That check is enforced in DoCommand.
@@ -1596,6 +1615,7 @@ void StateGameLoop()
 		BasePersistentStorageArray::SwitchMode(PSM_ENTER_GAMELOOP);
 		DateDetail::_tick_skip_counter++;
 		_scaled_tick_counter++;
+		UpdateNewGRFSignalAnimation();
 		if (_game_mode != GameMode::Bootstrap) {
 			_state_ticks++;   // This must update in lock-step with _tick_skip_counter, such that _state_ticks_offset doesn't need to be changed.
 		}
