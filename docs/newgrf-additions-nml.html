@@ -175,6 +175,20 @@
 		</td>
 	</tr>
 	</table>
+	<p>
+		For railtype and general custom signal graphics, diverging aspect control is exposed in
+		<span class="code">extra_callback_info2</span> without prescribing a particular signalling system:
+	</p>
+	<table>
+		<tr><th>Bits</th><th>Meaning</th></tr>
+		<tr><td>25 - 26</td><td>Diverging position: 0 = inactive, 1 = controlling signal, 2 = first approach signal, 3 = second approach signal.</td></tr>
+		<tr><td>27</td><td>Diverging release mode: 0 = immediate positional aspects, 1 = release from red.</td></tr>
+	</table>
+	<p>
+		In release-from-red mode the controlling signal reports position 1 and a red aspect while its routing restriction's
+		<span class="code">Wait at path signal</span> result is active. The result is re-evaluated as the train approaches.
+		When released, the signal reports its ordinary calculated proceed aspect; that aspect is then held until the train passes.
+	</p>
 	<h3 id="railtype-variables"><a href="https://newgrf-specs.tt-wiki.net/wiki/NML:Railtypes#Railtype_variables">Railtype variables</a></h3>
 	<p>Variables in the table below which are not supported by the version of OpenTTD being used return a value of 0.</p>
 	<table>

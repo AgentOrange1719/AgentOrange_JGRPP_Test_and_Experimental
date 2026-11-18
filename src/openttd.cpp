@@ -65,6 +65,7 @@
 #include "road_gui.h"
 #include "core/backup_type.hpp"
 #include "hotkeys.h"
+#include "rail.h"
 #include "newgrf.h"
 #include "newgrf_commons.h"
 #include "newgrf_newsignals.h"
@@ -1540,10 +1541,25 @@ void WriteVehicleInfo(format_target &buffer, const Vehicle *u, const Vehicle *v,
  */
 static constexpr uint NEWGRF_SIGNAL_ANIMATION_REDRAW_INTERVAL = 4;
 
+static bool HasNewGRFSignalAnimationCandidates()
+{
+	if (!_new_signals_grfs.empty()) return true;
+
+	/* Railtype signal graphics use the same animation counter but are not
+	 * registered in _new_signals_grfs. */
+	for (uint i = 0; i < RAILTYPE_END; i++) {
+		const RailTypeInfo *rti = GetRailTypeInfo(static_cast<RailType>(i));
+		if (rti->group[RailSpriteType::Signals] != nullptr) return true;
+	}
+
+	return false;
+}
+
 static void UpdateNewGRFSignalAnimation()
 {
-	if (_game_mode != GameMode::Normal || _new_signals_grfs.empty()) return;
+	if (_game_mode != GameMode::Normal) return;
 	if ((_scaled_tick_counter % NEWGRF_SIGNAL_ANIMATION_REDRAW_INTERVAL) != 0) return;
+	if (!HasNewGRFSignalAnimationCandidates()) return;
 
 	MarkWholeNonMapViewportsDirty();
 }

@@ -646,6 +646,7 @@ static std::span<const TraceRestrictDropDownListItem> GetActionDropDownListItems
 		{ TRIT_SPEED_ADAPTATION_CONTROL, STR_TRACE_RESTRICT_SPEED_ADAPTATION_CONTROL, TRDDLIF_ADVANCED | TRDDLIF_SPEED_ADAPTATION },
 		{ TRIT_SIGNAL_MODE_CONTROL,      STR_TRACE_RESTRICT_SIGNAL_MODE_CONTROL,      TRDDLIF_ADVANCED | TRDDLIF_NORMAL_SHUNT_SIGNAL_STYLE },
 		{ TRIT_DIVERGING_CONTROL,        STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL, TRDDLIF_ADVANCED | TRDDLIF_REALISTIC_BRAKING },
+		{ TRIT_DIVERGING_CONTROL_RELEASE_RED, STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL_RELEASE_RED, TRDDLIF_ADVANCED | TRDDLIF_REALISTIC_BRAKING },
 		{ TRIT_GUI_LABEL,                STR_TRACE_RESTRICT_GUI_LABEL,                TRDDLIF_NONE },
 	};
 	return std::span<const TraceRestrictDropDownListItem>(actions);
@@ -657,6 +658,7 @@ static std::span<const TraceRestrictDropDownListItem> GetConditionDropDownListIt
 		{ TRIT_COND_UNDEFINED,                                        STR_TRACE_RESTRICT_VARIABLE_UNDEFINED,                 TRDDLIF_HIDDEN },
 		{ TRIT_COND_TRAIN_LENGTH,                                     STR_TRACE_RESTRICT_VARIABLE_TRAIN_LENGTH,              TRDDLIF_NONE },
 		{ TRIT_COND_MAX_SPEED,                                        STR_TRACE_RESTRICT_VARIABLE_MAX_SPEED,                 TRDDLIF_NONE },
+		{ TRIT_COND_CURRENT_SPEED,                                    STR_TRACE_RESTRICT_VARIABLE_CURRENT_SPEED,             TRDDLIF_NONE },
 		{ TRIT_COND_CURRENT_ORDER,                                    STR_TRACE_RESTRICT_VARIABLE_CURRENT_ORDER,             TRDDLIF_NONE },
 		{ TRIT_COND_NEXT_ORDER,                                       STR_TRACE_RESTRICT_VARIABLE_NEXT_ORDER,                TRDDLIF_NONE },
 		{ TRIT_COND_LAST_STATION,                                     STR_TRACE_RESTRICT_VARIABLE_LAST_VISITED_STATION,      TRDDLIF_NONE },
@@ -2251,6 +2253,10 @@ static void FillInstructionString(format_buffer &instruction_string, const Trace
 
 			case TRIT_DIVERGING_CONTROL:
 				set_instruction(STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL);
+				break;
+
+			case TRIT_DIVERGING_CONTROL_RELEASE_RED:
+				set_instruction(STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL_RELEASE_RED);
 				break;
 
 			default:

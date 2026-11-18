@@ -184,6 +184,7 @@ void UpdateAspectDeferredWithVehicleRail(const Train *v, TileIndex tile, Trackdi
 void UpdateAspectDeferredWithVehicleTunnelBridgeExit(const Train *v, TileIndex tile, Trackdir trackdir);
 void UpdateLookaheadCombinedNormalShuntSignalDeferred(TileIndex tile, Trackdir trackdir, int lookahead_position);
 void FlushDeferredAspectUpdates();
+void UpdateDivergingAspectsWithLookahead(Train *v);
 void FlushDeferredDetermineCombineNormalShuntMode(Train *v);
 void UpdateAllSignalAspects();
 void UpdateExtraAspectsVariable(bool update_always_reserve_through = false);

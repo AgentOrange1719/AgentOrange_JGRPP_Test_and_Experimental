@@ -60,6 +60,8 @@ enum TrainReservationSignalLookAheadItemFlags {
 	TRSLAI_NEXT_ONLY       = 1,           ///< This signal only permits lookahead up to the next physical signal, even if that has TRSLAI_NO_ASPECT_INC (e.g. shunt)
 	TRSLAI_COMBINED        = 2,           ///< This signal is a combined normal/shunt signal, special handling
 	TRSLAI_COMBINED_SHUNT  = 3,           ///< This signal is a combined normal/shunt signal, in shunt mode
+	TRSLAI_DIVERGING_RELEASE_RED_HOLD = 4, ///< Treat this reserved signal as a red braking target until its release condition is met
+	TRSLAI_DIVERGING_RELEASE_RED_RELEASED = 5, ///< The release-from-red condition has been met for this train and signal
 };
 
 struct TrainReservationLookAheadItem {

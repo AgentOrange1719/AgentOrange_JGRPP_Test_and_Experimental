@@ -871,6 +871,7 @@ STR_TRACE_RESTRICT_CONDITIONAL_ELSE                             :Else
 STR_TRACE_RESTRICT_CONDITIONAL_ENDIF                            :End if
 STR_TRACE_RESTRICT_VARIABLE_TRAIN_LENGTH                        :train length
 STR_TRACE_RESTRICT_VARIABLE_MAX_SPEED                           :max speed
+STR_TRACE_RESTRICT_VARIABLE_CURRENT_SPEED                       :current speed
 STR_TRACE_RESTRICT_VARIABLE_CURRENT_ORDER                       :current order
 STR_TRACE_RESTRICT_VARIABLE_NEXT_ORDER                          :next order
 STR_TRACE_RESTRICT_VARIABLE_LAST_VISITED_STATION                :last visited station
@@ -984,6 +985,7 @@ STR_TRACE_RESTRICT_PF_PENALTY_CONTROL                           :Penalty config
 STR_TRACE_RESTRICT_SPEED_ADAPTATION_CONTROL                     :Speed adap. control
 STR_TRACE_RESTRICT_SIGNAL_MODE_CONTROL                          :Signal mode control
 STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL                     :Diverging aspect control
+STR_TRACE_RESTRICT_DIVERGING_ASPECT_CONTROL_RELEASE_RED         :Diverging aspect control (release from red)
 STR_TRACE_RESTRICT_SLOT_ACQUIRE_WAIT                            :Acquire or wait
 STR_TRACE_RESTRICT_SLOT_TRY_ACQUIRE                             :Try to acquire
 STR_TRACE_RESTRICT_SLOT_RELEASE_FRONT                           :Release (front)

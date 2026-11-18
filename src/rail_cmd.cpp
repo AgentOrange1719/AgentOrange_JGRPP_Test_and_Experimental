@@ -3345,6 +3345,10 @@ void DrawSingleSignal(TileIndex tile, const RailTypeInfo *rti, Track track, Sign
 		condition = SignalState::Red;
 	}
 
+	if (context.ctx_mode == CSSC_TRACK && GetSignalDivergingHeldAtRed(tile, track)) {
+		condition = SignalState::Red;
+	}
+
 	uint x, y;
 	GetSignalXY(tile, pos, HasBit(_signal_style_masks.signal_opposite_side, style) != ((context.ctx_flags & CSSCF_SECOND_SIGNAL) != 0), x, y);
 
@@ -3376,7 +3380,8 @@ void DrawSingleSignal(TileIndex tile, const RailTypeInfo *rti, Track track, Sign
 	const uint z = GetSafeSlopeZ(x, y, track);
 
 	const SignalDivergingState diverging_state = context.ctx_mode == CSSC_TRACK ? GetSignalDivergingState(tile, track) : SignalDivergingState::None;
-	const CustomSignalSpriteResult result = GetCustomSignalSprite(rti, tile, type, variant, aspect, context, style, prog, z, diverging_state);
+	const SignalDivergingMode diverging_mode = context.ctx_mode == CSSC_TRACK ? GetSignalDivergingMode(tile, track) : SignalDivergingMode::ReleaseFromYellow;
+	const CustomSignalSpriteResult result = GetCustomSignalSprite(rti, tile, type, variant, aspect, context, style, prog, z, diverging_state, diverging_mode);
 	SpriteID sprite = result.sprite.sprite;
 	PaletteID pal = PAL_NONE;
 	bool is_custom_sprite = (sprite != 0);

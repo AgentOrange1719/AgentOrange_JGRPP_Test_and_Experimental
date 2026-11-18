@@ -70,6 +70,12 @@ enum class SignalDivergingState : uint8_t {
 	SecondApproach, ///< Second signal preceding the controlling signal.
 };
 
+/** Operational mode selected by a route restriction's diverging aspect control action. */
+enum class SignalDivergingMode : uint8_t {
+	ReleaseFromYellow = 0, ///< Apply and hold the positional diverging aspects immediately.
+	ReleaseFromRed,        ///< Hold the controlling signal at red separately, then hold its released aspect.
+};
+
 /** Signal groups to cycle through. */
 enum SignalCycleGroups : uint8_t {
 	SCG_CURRENT_GROUP = 0,

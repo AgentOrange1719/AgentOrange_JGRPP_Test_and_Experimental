@@ -192,6 +192,7 @@ enum TraceRestrictItemType : uint8_t {
 	TRIT_COND_TRAIN_IN_SLOT_GROUP = 33,   ///< Test train slot membership
 	TRIT_COND_ORDER_STOP_LOCATION = 34,   ///< Test train stop location (near/middle/far/through load)
 	TRIT_COND_TIMETABLE_STATE     = 35,   ///< Test train lateness/earliness
+	TRIT_COND_CURRENT_SPEED       = 36,   ///< Test train current speed
 
 	TRIT_COND_END                 = 48,   ///< End (exclusive) of conditional item types, note that this has the same value as TRIT_REVERSE
 	TRIT_REVERSE                  = 48,   ///< Reverse behind/at signal
@@ -203,6 +204,7 @@ enum TraceRestrictItemType : uint8_t {
 	TRIT_SIGNAL_MODE_CONTROL      = 54,   ///< Control signal modes
 	TRIT_SLOT_GROUP               = 55,   ///< Slot group operation
 	TRIT_DIVERGING_CONTROL        = 56,   ///< Activate diverging aspect control
+	TRIT_DIVERGING_CONTROL_RELEASE_RED = 57, ///< Activate diverging aspect control in release-from-red mode
 
 	/* space up to 63 */
 };
@@ -807,6 +809,7 @@ enum TraceRestrictProgramResultFlags : uint16_t {
 	TRPRF_SIGNAL_MODE_SHUNT       = 1 << 12, ///< Combined normal/shunt signal mode control: shunt
 	TRPRF_REVERSE_AT              = 1 << 13, ///< Reverse at PBS signal is set
 	TRPRF_DIVERGING               = 1 << 14, ///< Diverging aspect control is active
+	TRPRF_DIVERGING_RELEASE_RED   = 1 << 15, ///< Diverging aspect control uses release-from-red mode
 };
 DECLARE_ENUM_AS_BIT_SET(TraceRestrictProgramResultFlags)
 
@@ -1125,6 +1128,7 @@ inline TraceRestrictTypePropertySet GetTraceRestrictTypeProperties(TraceRestrict
 				break;
 
 			case TRIT_COND_MAX_SPEED:
+			case TRIT_COND_CURRENT_SPEED:
 				out.value_type = TRVT_SPEED;
 				break;
 
@@ -1328,6 +1332,7 @@ inline TraceRestrictTypePropertySet GetTraceRestrictTypeProperties(TraceRestrict
 				break;
 
 			case TRIT_DIVERGING_CONTROL:
+			case TRIT_DIVERGING_CONTROL_RELEASE_RED:
 				out.value_type = TRVT_NONE;
 				break;
 

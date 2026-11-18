@@ -1654,14 +1654,20 @@ void FlushDeferredAspectUpdates()
 	_deferred_aspect_updates.clear();
 }
 
-static void SetRailSignalDivergingState(TileIndex tile, Trackdir trackdir, SignalDivergingState state)
+static void SetRailSignalDivergingState(TileIndex tile, Trackdir trackdir, SignalDivergingState state, SignalDivergingMode mode, bool held_at_red)
 {
 	if (!IsTileType(tile, TileType::Railway) || !HasSignalOnTrackdir(tile, trackdir)) return;
 
 	Track track = TrackdirToTrack(trackdir);
 	SignalDivergingState old_state = GetSignalDivergingState(tile, track);
-	if (old_state == state) return;
+	SignalDivergingMode old_mode = GetSignalDivergingMode(tile, track);
+	bool old_held_at_red = GetSignalDivergingHeldAtRed(tile, track);
+	if (old_state == state && (state == SignalDivergingState::None || (old_mode == mode && old_held_at_red == held_at_red))) return;
 
+	if (state != SignalDivergingState::None) {
+		SetSignalDivergingMode(tile, track, mode);
+		SetSignalDivergingHeldAtRed(tile, track, state == SignalDivergingState::Controlling && held_at_red);
+	}
 	SetSignalDivergingState(tile, track, state);
 	if (state == SignalDivergingState::None && GetSignalStateByTrackdir(tile, trackdir) == SignalState::Green) {
 		/* Recalculate the ordinary aspect after releasing a route-controlled hold. */
@@ -1671,7 +1677,7 @@ static void SetRailSignalDivergingState(TileIndex tile, Trackdir trackdir, Signa
 	MarkSingleSignalDirty(tile, trackdir);
 }
 
-static void DetermineDivergingAspectsWithLookahead(Train *v)
+void UpdateDivergingAspectsWithLookahead(Train *v)
 {
 	if (v->lookahead == nullptr) return;
 
@@ -1679,13 +1685,25 @@ static void DetermineDivergingAspectsWithLookahead(Train *v)
 	for (TrainReservationLookAheadItem &item : v->lookahead->items) {
 		if (item.type != TRLIT_SIGNAL || item.signal_tile == INVALID_TILE || item.signal_trackdir == INVALID_TRACKDIR) continue;
 		if (!IsTileType(item.signal_tile, TileType::Railway) || !HasSignalOnTrackdir(item.signal_tile, item.signal_trackdir)) continue;
+		ClrBit(item.data_aux, TRSLAI_DIVERGING_RELEASE_RED_HOLD);
 		signals.push_back(&item);
 	}
 	if (signals.empty()) return;
 
-	std::vector<SignalDivergingState> desired(signals.size(), SignalDivergingState::None);
-	auto set_desired = [&](size_t index, SignalDivergingState state) {
-		if (desired[index] == SignalDivergingState::None || to_underlying(state) < to_underlying(desired[index])) desired[index] = state;
+	struct DesiredDivergingState {
+		SignalDivergingState state = SignalDivergingState::None;
+		SignalDivergingMode mode = SignalDivergingMode::ReleaseFromYellow;
+		bool held_at_red = false;
+	};
+	std::vector<DesiredDivergingState> desired(signals.size());
+	auto set_desired = [&](size_t index, SignalDivergingState state, SignalDivergingMode mode, bool held_at_red = false) {
+		if (desired[index].state == SignalDivergingState::None ||
+				to_underlying(state) < to_underlying(desired[index].state) ||
+				(state == desired[index].state && mode == SignalDivergingMode::ReleaseFromRed)) {
+			desired[index].state = state;
+			desired[index].mode = mode;
+			desired[index].held_at_red = held_at_red;
+		}
 	};
 
 	for (size_t i = 0; i < signals.size(); i++) {
@@ -1699,18 +1717,30 @@ static void DetermineDivergingAspectsWithLookahead(Train *v)
 		}, nullptr);
 		prog->Execute(v, input, out);
 		if (!(out.flags & TRPRF_DIVERGING)) continue;
+		SignalDivergingMode mode = (out.flags & TRPRF_DIVERGING_RELEASE_RED) ?
+				SignalDivergingMode::ReleaseFromRed : SignalDivergingMode::ReleaseFromYellow;
 
-		set_desired(i, SignalDivergingState::Controlling);
+		bool released = HasBit(item.data_aux, TRSLAI_DIVERGING_RELEASE_RED_RELEASED);
+		bool held_at_red = mode == SignalDivergingMode::ReleaseFromRed && !released && (out.flags & TRPRF_WAIT_AT_PBS);
+		if (mode == SignalDivergingMode::ReleaseFromRed && !held_at_red) {
+			/* Latch the release until this signal leaves the train's lookahead. */
+			SetBit(item.data_aux, TRSLAI_DIVERGING_RELEASE_RED_RELEASED);
+		}
+		AssignBit(item.data_aux, TRSLAI_DIVERGING_RELEASE_RED_HOLD, held_at_red);
+		set_desired(i, SignalDivergingState::Controlling, mode, held_at_red);
 		SignalDivergingState approach_state = SignalDivergingState::FirstApproach;
 		for (size_t j = i; j-- > 0 && approach_state <= SignalDivergingState::SecondApproach;) {
 			if (HasBit(signals[j]->data_aux, TRSLAI_NO_ASPECT_INC)) continue;
-			set_desired(j, approach_state);
+			set_desired(j, approach_state, mode);
 			approach_state = static_cast<SignalDivergingState>(to_underlying(approach_state) + 1);
 		}
 	}
 
 	for (size_t i = 0; i < signals.size(); i++) {
-		SetRailSignalDivergingState(signals[i]->signal_tile, signals[i]->signal_trackdir, desired[i]);
+		if (desired[i].state != SignalDivergingState::Controlling || desired[i].mode != SignalDivergingMode::ReleaseFromRed) {
+			ClrBit(signals[i]->data_aux, TRSLAI_DIVERGING_RELEASE_RED_RELEASED);
+		}
+		SetRailSignalDivergingState(signals[i]->signal_tile, signals[i]->signal_trackdir, desired[i].state, desired[i].mode, desired[i].held_at_red);
 	}
 }
 
@@ -1853,7 +1883,7 @@ void FlushDeferredDetermineCombineNormalShuntMode(Train *v)
 	}
 	_deferred_lookahead_combined_normal_shunt_mode.clear();
 
-	DetermineDivergingAspectsWithLookahead(v);
+	UpdateDivergingAspectsWithLookahead(v);
 
 	for (const auto &iter : _deferred_determine_combined_normal_shunt_mode) {
 		/* Reservation with no associated lookahead, default to a shunt route */

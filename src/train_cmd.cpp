@@ -1048,7 +1048,9 @@ static void ApplyLookAheadItem(const Train *v, const TrainReservationLookAheadIt
 			break;
 
 		case TRLIT_SIGNAL:
-			if (_settings_game.vehicle.realistic_braking_aspect_limited == TRBALM_ON &&
+			if (HasBit(item.data_aux, TRSLAI_DIVERGING_RELEASE_RED_HOLD)) {
+				limit_advisory_speed(item.start, 0, item.z_pos);
+			} else if (_settings_game.vehicle.realistic_braking_aspect_limited == TRBALM_ON &&
 					(v->lookahead->lookahead_end_position == item.start || v->lookahead->lookahead_end_position == item.start + 1)) {
 				limit_advisory_speed(item.start, 0, item.z_pos);
 			}
@@ -1204,6 +1206,7 @@ Train::MaxSpeedInfo Train::GetCurrentMaxSpeedInfoInternal(bool update_state) con
 
 	if (this->UsingRealisticBraking()) {
 		if (this->lookahead != nullptr) {
+			if (update_state) UpdateDivergingAspectsWithLookahead(const_cast<Train *>(this));
 			if (update_state && this->lookahead->zpos_refresh_remaining == 0) {
 				this->lookahead->cached_zpos = this->CalculateOverallZPos();
 				this->lookahead->zpos_refresh_remaining = this->GetZPosCacheUpdateInterval();

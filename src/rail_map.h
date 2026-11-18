@@ -421,6 +421,34 @@ inline void SetSignalVariant(TileIndex t, Track track, SignalVariant v)
 	if (track == INVALID_TRACK) SB(_m[t].m2, 7, 1, to_underlying(v));
 }
 
+inline SignalDivergingMode GetSignalDivergingMode(TileIndex t, Track track)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 15 : 14;
+	return static_cast<SignalDivergingMode>(GB(_m[t].m2, pos, 1));
+}
+
+inline void SetSignalDivergingMode(TileIndex t, Track track, SignalDivergingMode mode)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 15 : 14;
+	SB(_m[t].m2, pos, 1, to_underlying(mode));
+}
+
+inline bool GetSignalDivergingHeldAtRed(TileIndex t, Track track)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 1 : 0;
+	return HasBit(_m[t].m3, pos);
+}
+
+inline void SetSignalDivergingHeldAtRed(TileIndex t, Track track, bool held)
+{
+	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
+	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 1 : 0;
+	AssignBit(_m[t].m3, pos, held);
+}
+
 inline SignalDivergingState GetSignalDivergingState(TileIndex t, Track track)
 {
 	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
@@ -433,6 +461,10 @@ inline void SetSignalDivergingState(TileIndex t, Track track, SignalDivergingSta
 	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
 	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 14 : 12;
 	SB(_me[t].m8, pos, 2, to_underlying(state));
+	if (state == SignalDivergingState::None) {
+		SetSignalDivergingMode(t, track, SignalDivergingMode::ReleaseFromYellow);
+		SetSignalDivergingHeldAtRed(t, track, false);
+	}
 }
 
 inline uint8_t GetSignalAspect(TileIndex t, Track track)
@@ -440,6 +472,10 @@ inline uint8_t GetSignalAspect(TileIndex t, Track track)
 	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
 	SignalDivergingState diverging_state = GetSignalDivergingState(t, track);
 	if (diverging_state != SignalDivergingState::None) {
+		if (GetSignalDivergingMode(t, track) == SignalDivergingMode::ReleaseFromRed && diverging_state == SignalDivergingState::Controlling) {
+			uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 3 : 0;
+			return GB(_me[t].m7, pos, 3);
+		}
 		uint8_t aspect = to_underlying(diverging_state);
 		uint8_t style_pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 4 : 0;
 		uint8_t style = GB(_me[t].m6, style_pos, 4);
@@ -454,6 +490,13 @@ inline void SetSignalAspect(TileIndex t, Track track, uint8_t aspect)
 {
 	dbg_assert_tile(GetRailTileType(t) == RailTileType::Signals, t);
 	uint8_t pos = (track == TRACK_LOWER || track == TRACK_RIGHT) ? 3 : 0;
+	SignalDivergingState diverging_state = GetSignalDivergingState(t, track);
+	if (diverging_state != SignalDivergingState::None) {
+		/* A released controlling signal may still be awaiting its first deferred ordinary aspect calculation. */
+		bool initialise_released_aspect = GetSignalDivergingMode(t, track) == SignalDivergingMode::ReleaseFromRed &&
+				diverging_state == SignalDivergingState::Controlling && GB(_me[t].m7, pos, 3) == 0;
+		if (!initialise_released_aspect) return;
+	}
 	SB(_me[t].m7, pos, 3, aspect);
 }
 

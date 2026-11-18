@@ -200,7 +200,7 @@ inline uint8_t RemapAspect(uint8_t aspect, uint8_t extra_aspects, uint8_t style)
 }
 
 static PalSpriteID GetRailTypeCustomSignalSprite(const RailTypeInfo *rti, TileIndex tile, SignalType type, SignalVariant var, uint8_t aspect,
-		CustomSignalSpriteContext context, const TraceRestrictProgram *prog, uint z, SignalDivergingState diverging_state)
+		CustomSignalSpriteContext context, const TraceRestrictProgram *prog, uint z, SignalDivergingState diverging_state, SignalDivergingMode diverging_mode)
 {
 	if (rti->group[RailSpriteType::Signals] == nullptr) return { 0, PAL_NONE };
 	if (type == SignalType::Prog && !rti->ctrl_flags.Test(RailTypeCtrlFlag::SigSpriteProgSig)) return { 0, PAL_NONE };
@@ -209,8 +209,9 @@ static PalSpriteID GetRailTypeCustomSignalSprite(const RailTypeInfo *rti, TileIn
 	uint32_t param1 = (context.ctx_mode == CSSC_GUI) ? 0x10 : 0x00;
 	uint32_t param2 = (to_underlying(type) << 16) | (to_underlying(var) << 8) | RemapAspect(aspect, rti->signal_extra_aspects, 0);
 	if ((prog != nullptr) && rti->ctrl_flags.Test(RailTypeCtrlFlag::SigSpriteRestrictedSig)) SetBit(param2, 24);
-	/* Bits 25..26 expose GRF-neutral diverging control: none, controlling, first approach, second approach. */
+	/* Bits 25..27 expose GRF-neutral diverging position and release mode. */
 	SB(param2, 25, 2, to_underlying(diverging_state));
+	SB(param2, 27, 1, to_underlying(diverging_mode));
 	RailTypeResolverObject object(rti, tile, TileContext::Normal, RailSpriteType::Signals, param1, param2, context, prog, z);
 
 	const ResultSpriteGroup *group = object.Resolve<ResultSpriteGroup>();
@@ -231,12 +232,12 @@ static PalSpriteID GetRailTypeCustomSignalSprite(const RailTypeInfo *rti, TileIn
  * @return The sprite to draw.
  */
 CustomSignalSpriteResult GetCustomSignalSprite(const RailTypeInfo *rti, TileIndex tile, SignalType type, SignalVariant var, uint8_t aspect,
-		CustomSignalSpriteContext context, uint8_t style, const TraceRestrictProgram *prog, uint z, SignalDivergingState diverging_state)
+		CustomSignalSpriteContext context, uint8_t style, const TraceRestrictProgram *prog, uint z, SignalDivergingState diverging_state, SignalDivergingMode diverging_mode)
 {
 	if (_settings_client.gui.show_all_signal_default == SSDM_ON && style == 0) return { { 0, PAL_NONE }, false };
 
 	if (style == 0) {
-		PalSpriteID spr = GetRailTypeCustomSignalSprite(rti, tile, type, var, aspect, context, prog, z, diverging_state);
+		PalSpriteID spr = GetRailTypeCustomSignalSprite(rti, tile, type, var, aspect, context, prog, z, diverging_state, diverging_mode);
 		if (spr.sprite != 0) return { spr, rti->ctrl_flags.Test(RailTypeCtrlFlag::SigSpriteRestrictedSig) };
 	}
 
@@ -250,8 +251,9 @@ CustomSignalSpriteResult GetCustomSignalSprite(const RailTypeInfo *rti, TileInde
 		uint32_t param1 = (context.ctx_mode == CSSC_GUI) ? 0x10 : 0x00;
 		uint32_t param2 = (to_underlying(type) << 16) | (to_underlying(var) << 8) | RemapAspect(aspect, grf->new_signal_extra_aspects, style);
 		if ((prog != nullptr) && HasBit(grf->new_signal_ctrl_flags, NSCF_RESTRICTEDSIG)) SetBit(param2, 24);
-		/* Bits 25..26 expose GRF-neutral diverging control: none, controlling, first approach, second approach. */
+		/* Bits 25..27 expose GRF-neutral diverging position and release mode. */
 		SB(param2, 25, 2, to_underlying(diverging_state));
+		SB(param2, 27, 1, to_underlying(diverging_mode));
 		NewSignalsResolverObject object(grf, tile, TileContext::Normal, param1, param2, context, style, prog, z);
 
 		const ResultSpriteGroup *group = object.Resolve<ResultSpriteGroup>();

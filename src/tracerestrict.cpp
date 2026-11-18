@@ -556,6 +556,10 @@ void TraceRestrictProgram::Execute(const Train *v, const TraceRestrictProgramInp
 						result = TestCondition(v->GetDisplayMaxSpeed(), condop, condvalue);
 						break;
 
+					case TRIT_COND_CURRENT_SPEED:
+						result = TestCondition(v->GetDisplaySpeed(), condop, condvalue);
+						break;
+
 					case TRIT_COND_CURRENT_ORDER:
 						result = TestOrderCondition(&(v->current_order), item);
 						break;
@@ -1246,6 +1250,11 @@ void TraceRestrictProgram::Execute(const Train *v, const TraceRestrictProgramInp
 						out.flags |= TRPRF_DIVERGING;
 						break;
 
+					case TRIT_DIVERGING_CONTROL_RELEASE_RED:
+						out.flags |= TRPRF_DIVERGING;
+						out.flags |= TRPRF_DIVERGING_RELEASE_RED;
+						break;
+
 					default:
 						NOT_REACHED();
 				}
@@ -1411,6 +1420,7 @@ CommandCost TraceRestrictProgram::Validate(const std::span<const TraceRestrictPr
 
 				case TRIT_COND_TRAIN_LENGTH:
 				case TRIT_COND_MAX_SPEED:
+				case TRIT_COND_CURRENT_SPEED:
 				case TRIT_COND_LOAD_PERCENT:
 				case TRIT_COND_COUNTER_VALUE:
 				case TRIT_COND_RESERVED_TILES:
@@ -1613,6 +1623,7 @@ CommandCost TraceRestrictProgram::Validate(const std::span<const TraceRestrictPr
 				case TRIT_COND_UNDEFINED:
 				case TRIT_COND_TRAIN_LENGTH:
 				case TRIT_COND_MAX_SPEED:
+				case TRIT_COND_CURRENT_SPEED:
 				case TRIT_COND_CARGO:
 				case TRIT_COND_ENTRY_DIRECTION:
 				case TRIT_COND_PBS_ENTRY_SIGNAL:
@@ -1908,6 +1919,7 @@ CommandCost TraceRestrictProgram::Validate(const std::span<const TraceRestrictPr
 					break;
 
 				case TRIT_DIVERGING_CONTROL:
+				case TRIT_DIVERGING_CONTROL_RELEASE_RED:
 					actions_used_flags |= TRPAUF_DIVERGING_CONTROL;
 					break;
 
