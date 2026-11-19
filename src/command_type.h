@@ -772,6 +772,8 @@ enum class Commands : uint8_t {
 
 	DesyncCheck,                            ///< Force desync checks to be run
 
+	ExpandTownWithAttempts,                  ///< Expand a town with a fixed number of growth attempts.
+
 	End,                                    ///< Must ALWAYS be on the end of this list!! (period)
 };
 

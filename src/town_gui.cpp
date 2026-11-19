@@ -18,6 +18,7 @@
 #include "newgrf_text.h"
 #include "picker_gui.h"
 #include "command_func.h"
+#include "cheat_type.h"
 #include "company_func.h"
 #include "company_base.h"
 #include "company_gui.h"
@@ -559,6 +560,16 @@ struct TownViewWindow : Window {
 private:
 	Town *town = nullptr; ///< Town displayed by the window.
 
+	static TownExpandModes GetExpansionModes(WidgetID widget)
+	{
+		switch (widget) {
+			case WID_TV_EXPAND: return {TownExpandMode::Buildings, TownExpandMode::Roads};
+			case WID_TV_EXPAND_BUILDINGS: return {TownExpandMode::Buildings};
+			case WID_TV_EXPAND_ROADS: return {TownExpandMode::Roads};
+			default: NOT_REACHED();
+		}
+	}
+
 public:
 	static const int WID_TV_HEIGHT_NORMAL = 150;
 
@@ -583,6 +594,12 @@ public:
 		this->Window::Close();
 	}
 
+	void OnInit() override
+	{
+		if (_game_mode == GameMode::Editor) return;
+		this->GetWidget<NWidgetStacked>(WID_TV_EXPAND_SEL)->SetDisplayedPlane(_cheats.edit_towns.value ? 0 : SZSP_HORIZONTAL);
+	}
+
 	std::string GetWidgetString(WidgetID widget, StringID stringid) const override
 	{
 		if (widget == WID_TV_CAPTION) return GetString(this->town->larger_town ? STR_TOWN_VIEW_CITY_CAPTION : STR_TOWN_VIEW_TOWN_CAPTION, this->town->index);
@@ -596,6 +613,9 @@ public:
 		this->SetWidgetLoweredState(WID_TV_CATCHMENT, _viewport_highlight_town == this->town);
 		this->SetWidgetDisabledState(WID_TV_CHANGE_NAME, IsNonAdminNetworkClient() &&
 				!(_local_company != COMPANY_SPECTATOR && _settings_game.difficulty.rename_towns_in_multiplayer));
+		if (_game_mode != GameMode::Editor && _cheats.edit_towns.value) {
+			this->SetWidgetsDisabledState(!Company::IsValidID(_local_company), WID_TV_EXPAND, WID_TV_EXPAND_BUILDINGS, WID_TV_EXPAND_ROADS);
+		}
 
 		this->DrawWidgets();
 	}
@@ -693,7 +713,7 @@ public:
 		}
 	}
 
-	void OnClick([[maybe_unused]] Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
+	void OnClick(Point pt, WidgetID widget, [[maybe_unused]] int click_count) override
 	{
 		switch (widget) {
 			case WID_TV_CENTER_VIEW: // scroll to location
@@ -716,17 +736,21 @@ public:
 				SetViewportCatchmentTown(Town::Get(this->window_number), !this->IsWidgetLowered(WID_TV_CATCHMENT));
 				break;
 
-			case WID_TV_EXPAND: // expand town - only available on Scenario editor
-				Command<Commands::ExpandTown>::Post(STR_ERROR_CAN_T_EXPAND_TOWN, static_cast<TownID>(this->window_number), 0, {TownExpandMode::Buildings, TownExpandMode::Roads});
+			case WID_TV_EXPAND:
+			case WID_TV_EXPAND_BUILDINGS:
+			case WID_TV_EXPAND_ROADS: {
+				if (this->GetWidget<NWidgetLeaf>(widget)->ButtonHit(pt)) {
+					this->HandleButtonClick(widget);
+					Command<Commands::ExpandTown>::Post(STR_ERROR_CAN_T_EXPAND_TOWN, this->town->index, 0, GetExpansionModes(widget));
+				} else {
+					DropDownList list;
+					for (uint16_t attempts : TOWN_EXPANSION_ATTEMPT_COUNTS) {
+						list.push_back(MakeDropDownListStringItem(GetString(STR_TOWN_VIEW_EXPAND_ATTEMPTS, attempts), attempts));
+					}
+					ShowDropDownList(this, std::move(list), -1, widget);
+				}
 				break;
-
-			case WID_TV_EXPAND_BUILDINGS: // expand buildings of town - only available on Scenario editor
-				Command<Commands::ExpandTown>::Post(STR_ERROR_CAN_T_EXPAND_TOWN, static_cast<TownID>(this->window_number), 0, {TownExpandMode::Buildings});
-				break;
-
-			case WID_TV_EXPAND_ROADS: // expand roads of town - only available on Scenario editor
-				Command<Commands::ExpandTown>::Post(STR_ERROR_CAN_T_EXPAND_TOWN, static_cast<TownID>(this->window_number), 0, {TownExpandMode::Roads});
-				break;
+			}
 
 			case WID_TV_DELETE: // delete town - only available on Scenario editor
 				Command<Commands::DeleteTown>::Post(STR_ERROR_TOWN_CAN_T_DELETE, static_cast<TownID>(this->window_number));
@@ -737,6 +761,12 @@ public:
 				break;
 			}
 		}
+	}
+
+	void OnDropdownSelect(WidgetID widget, int index, int) override
+	{
+		if (index < 0) return;
+		Command<Commands::ExpandTownWithAttempts>::Post(STR_ERROR_CAN_T_EXPAND_TOWN, this->town->index, static_cast<uint16_t>(index), GetExpansionModes(widget));
 	}
 
 	void UpdateWidgetSize(WidgetID widget, Dimension &size, [[maybe_unused]] const Dimension &padding, [[maybe_unused]] Dimension &fill, [[maybe_unused]] Dimension &resize) override
@@ -815,6 +845,14 @@ public:
 	void OnInvalidateData([[maybe_unused]] int data = 0, [[maybe_unused]] bool gui_scope = true) override
 	{
 		if (!gui_scope) return;
+		if (_game_mode != GameMode::Editor) {
+			int plane = _cheats.edit_towns.value ? 0 : SZSP_HORIZONTAL;
+			if (this->GetWidget<NWidgetStacked>(WID_TV_EXPAND_SEL)->shown_plane != plane) {
+				if (plane == SZSP_HORIZONTAL) HideDropDownMenu(this);
+				this->ReInit();
+				return;
+			}
+		}
 		/* Called when setting station noise or required cargoes have changed, in order to resize the window */
 		this->SetDirty(); // refresh display for current size. This will allow to avoid glitches when downgrading
 		this->ResizeWindowAsNeeded();
@@ -842,6 +880,19 @@ public:
 	}
 };
 
+/** Build the town expansion buttons shared by the game and scenario editor. */
+static std::unique_ptr<NWidgetBase> MakeTownExpandWidgets()
+{
+	static constexpr std::initializer_list<NWidgetPart> widgets = {
+		NWidget(NWID_HORIZONTAL),
+			NWidget(NWID_PUSHBUTTON_DROPDOWN, Colours::Brown, WID_TV_EXPAND), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_BUTTON, STR_TOWN_VIEW_EXPAND_TOOLTIP),
+			NWidget(NWID_PUSHBUTTON_DROPDOWN, Colours::Brown, WID_TV_EXPAND_BUILDINGS), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_BUILDINGS_BUTTON, STR_TOWN_VIEW_EXPAND_BUILDINGS_TOOLTIP),
+			NWidget(NWID_PUSHBUTTON_DROPDOWN, Colours::Brown, WID_TV_EXPAND_ROADS), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_ROADS_BUTTON, STR_TOWN_VIEW_EXPAND_ROADS_TOOLTIP),
+		EndContainer(),
+	};
+	return MakeNWidgets(widgets, nullptr);
+}
+
 static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widgets = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, Colours::Brown),
@@ -859,6 +910,9 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_game_view_widge
 		EndContainer(),
 	EndContainer(),
 	NWidget(WWT_PANEL, Colours::Brown, WID_TV_INFO), SetMinimalSize(260, 32), SetResize(1, 0), SetFill(1, 0), EndContainer(),
+	NWidget(NWID_SELECTION, Colours::Invalid, WID_TV_EXPAND_SEL),
+		NWidgetFunction(MakeTownExpandWidgets),
+	EndContainer(),
 	NWidget(NWID_HORIZONTAL, NWidContainerFlag::EqualSize),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_SHOW_AUTHORITY), SetMinimalSize(80, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_LOCAL_AUTHORITY_BUTTON, STR_TOWN_VIEW_LOCAL_AUTHORITY_TOOLTIP),
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_CATCHMENT), SetMinimalSize(40, 12), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_BUTTON_CATCHMENT, STR_TOOLTIP_CATCHMENT),
@@ -891,11 +945,7 @@ static constexpr std::initializer_list<NWidgetPart> _nested_town_editor_view_wid
 		EndContainer(),
 	EndContainer(),
 	NWidget(WWT_PANEL, Colours::Brown, WID_TV_INFO), SetMinimalSize(260, 32), SetResize(1, 0), SetFill(1, 0), EndContainer(),
-	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_EXPAND), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_BUTTON, STR_TOWN_VIEW_EXPAND_TOOLTIP),
-		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_EXPAND_BUILDINGS), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_BUILDINGS_BUTTON, STR_TOWN_VIEW_EXPAND_BUILDINGS_TOOLTIP),
-		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_EXPAND_ROADS), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_EXPAND_ROADS_BUTTON, STR_TOWN_VIEW_EXPAND_ROADS_TOOLTIP),
-	EndContainer(),
+	NWidgetFunction(MakeTownExpandWidgets),
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_PUSHTXTBTN, Colours::Brown, WID_TV_DELETE), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_TOWN_VIEW_DELETE_BUTTON, STR_TOWN_VIEW_DELETE_TOOLTIP),
 		NWidget(WWT_TEXTBTN, Colours::Brown, WID_TV_CATCHMENT), SetFill(1, 1), SetResize(1, 0), SetStringTip(STR_BUTTON_CATCHMENT, STR_TOOLTIP_CATCHMENT),
@@ -1480,7 +1530,7 @@ public:
 
 		this->GetWidget<NWidgetStacked>(WID_TF_TOWN_ACTION_SEL)->SetDisplayedPlane(SZSP_HORIZONTAL);
 		this->GetWidget<NWidgetStacked>(WID_TF_TOWN_EXPAND_SEL)->SetDisplayedPlane(SZSP_HORIZONTAL);
-		this->GetWidget<NWidgetStacked>(WID_TF_SIZE_SEL)->SetDisplayedPlane(SZSP_VERTICAL);
+		this->GetWidget<NWidgetStacked>(WID_TF_SIZE_SEL)->SetDisplayedPlane(_cheats.edit_towns.value ? 0 : SZSP_VERTICAL);
 		if (_settings_game.economy.found_town != TownFounding::CustomLayout) {
 			this->GetWidget<NWidgetStacked>(WID_TF_ROAD_LAYOUT_SEL)->SetDisplayedPlane(SZSP_HORIZONTAL);
 		} else {
@@ -1506,6 +1556,7 @@ public:
 	{
 		if (check_availability && _game_mode != GameMode::Editor) {
 			if (_settings_game.economy.found_town != TownFounding::CustomLayout) this->town_layout = _settings_game.economy.town_layout;
+			if (!_cheats.edit_towns.value && this->town_size == TownSize::Large) this->town_size = TownSize::Medium;
 			this->ReInit();
 		}
 

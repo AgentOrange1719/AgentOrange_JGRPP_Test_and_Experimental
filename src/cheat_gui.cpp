@@ -222,6 +222,7 @@ static const CheatEntry _cheats_ui[] = {
 	{CNM_ALL,        InflationCheat, STR_CHEAT_INFLATION_INCOME, &_economy.inflation_payment,                   &_cheats.inflation_income.been_used,       nullptr                    },
 	{CNM_ALL,        SLE_VAR_BL,     STR_CHEAT_STATION_RATING,   &_cheats.station_rating.value,                 &_cheats.station_rating.been_used,         nullptr                    },
 	{CNM_ALL,        SLE_VAR_BL,     STR_CHEAT_TOWN_RATING,      &_cheats.town_rating.value,                    &_cheats.town_rating.been_used,            nullptr                    },
+	{CNM_ALL,        SLE_VAR_BL,     STR_CHEAT_EDIT_TOWNS,       &_cheats.edit_towns.value,                     &_cheats.edit_towns.been_used,             nullptr                    },
 };
 
 static bool IsCheatAllowed(CheatNetworkMode mode)
@@ -571,7 +572,7 @@ struct CheatWindow : Window {
 		}
 
 		if (value != oldvalue) {
-			if (_networking || cheat == CHT_STATION_RATING || cheat == CHT_TOWN_RATING) {
+			if (_networking || cheat == CHT_STATION_RATING || cheat == CHT_TOWN_RATING || cheat == CHT_EDIT_TOWNS) {
 				if (btn != CHT_MONEY) Command<Commands::CheatSetting>::Post(cheat, static_cast<uint32_t>(value));
 			} else {
 				WriteValue(ce->variable, ce->type, static_cast<int64_t>(value));

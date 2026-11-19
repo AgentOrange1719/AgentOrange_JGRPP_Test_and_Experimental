@@ -2385,10 +2385,10 @@ CommandCost CmdFoundTown(DoCommandFlags flags, TileIndex tile, TownSize size, bo
 	if (size >= TownSize::End) return CMD_ERROR;
 	if (layout >= TownLayout::End) return CMD_ERROR;
 
-	/* Some things are allowed only in the scenario editor and for game scripts. */
+	/* Apply company town founding restrictions outside the scenario editor. */
 	if (_game_mode != GameMode::Editor && _current_company != OWNER_DEITY) {
 		if (_settings_game.economy.found_town == TownFounding::Forbidden) return CMD_ERROR;
-		if (size == TownSize::Large) return CMD_ERROR;
+		if (size == TownSize::Large && !_cheats.edit_towns.value) return CMD_ERROR;
 		if (random_location) return CMD_ERROR;
 		if (_settings_game.economy.found_town != TownFounding::CustomLayout && layout != _settings_game.economy.town_layout) {
 			return CMD_ERROR;
@@ -3662,32 +3662,25 @@ CommandCost CmdTownRating(DoCommandFlags flags, TownID town_id, CompanyID compan
 	return CommandCost();
 }
 
-/**
- * Expand a town (scenario editor only).
- * @param flags Type of operation.
- * @param town_id Town ID to expand.
- * @param modes The parts of the town that are being grown.
- * @param grow_amount Amount to grow, or 0 to grow a random size up to the current amount of houses.
- * @return Empty cost or an error.
- */
-CommandCost CmdExpandTown(DoCommandFlags flags, TownID town_id, uint32_t grow_amount, TownExpandModes modes)
+static CommandCost ExpandTown(DoCommandFlags flags, TownID town_id, uint32_t grow_amount, TownExpandModes modes, bool fixed_attempts)
 {
-	if (_game_mode != GameMode::Editor && _current_company != OWNER_DEITY) return CMD_ERROR;
+	/* Company commands may use the default burst or a preset attempt count. */
+	if (_game_mode != GameMode::Editor && _current_company != OWNER_DEITY && (!_cheats.edit_towns.value || (!fixed_attempts && grow_amount != 0))) return CMD_ERROR;
 	if (modes.None()) return CMD_ERROR;
 	Town *t = Town::GetIfValid(town_id);
 	if (t == nullptr) return CMD_ERROR;
 
 	if (flags.Test(DoCommandFlag::Execute)) {
-		/* The more houses, the faster we grow */
-		if (grow_amount == 0) {
-			uint amount = RandomRange(ClampTo<uint16_t>(t->cache.num_houses / 10)) + 3;
-			t->cache.num_houses += amount;
+		if (fixed_attempts || grow_amount == 0) {
+			uint attempts = fixed_attempts ? grow_amount : (RandomRange(ClampTo<uint16_t>(t->cache.num_houses / 10)) + 3) * 10;
+			/* Temporarily increase the town's radius for the expansion burst. */
+			uint extra_houses = attempts / 10;
+			t->cache.num_houses += extra_houses;
 			UpdateTownRadius(t);
 
-			uint n = amount * 10;
-			do GrowTown(t, modes); while (--n);
+			for (uint i = 0; i < attempts; ++i) GrowTown(t, modes);
 
-			t->cache.num_houses -= amount;
+			t->cache.num_houses -= extra_houses;
 		} else {
 			for (; grow_amount > 0; grow_amount--) {
 				/* Try several times to grow, as we are really suppose to grow */
@@ -3700,6 +3693,33 @@ CommandCost CmdExpandTown(DoCommandFlags flags, TownID town_id, uint32_t grow_am
 	}
 
 	return CommandCost();
+}
+
+/**
+ * Expand a town in the scenario editor, from a game script, or using the town editing cheat.
+ * @param flags Type of operation.
+ * @param town_id Town ID to expand.
+ * @param grow_amount Target number of growth successes, or 0 for the random growth burst.
+ * @param modes The parts of the town that are being grown.
+ * @return Empty cost or an error.
+ */
+CommandCost CmdExpandTown(DoCommandFlags flags, TownID town_id, uint32_t grow_amount, TownExpandModes modes)
+{
+	return ExpandTown(flags, town_id, grow_amount, modes, false);
+}
+
+/**
+ * Expand a town with one of the preset numbers of growth attempts.
+ * @param flags Type of operation.
+ * @param town_id Town ID to expand.
+ * @param attempts Number of growth attempts, including unsuccessful ones.
+ * @param modes The parts of the town that are being grown.
+ * @return Empty cost or an error.
+ */
+CommandCost CmdExpandTownWithAttempts(DoCommandFlags flags, TownID town_id, uint16_t attempts, TownExpandModes modes)
+{
+	if (std::ranges::find(TOWN_EXPANSION_ATTEMPT_COUNTS, attempts) == TOWN_EXPANSION_ATTEMPT_COUNTS.end()) return CMD_ERROR;
+	return ExpandTown(flags, town_id, attempts, modes, true);
 }
 
 /**

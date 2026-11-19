@@ -822,6 +822,7 @@ STR_CHEAT_INFLATION_COST_QUERY_CAPT                             :{WHITE}Change i
 STR_CHEAT_INFLATION_INCOME                                      :{LTBLUE}Change inflation income factor: {ORANGE}{DECIMAL}
 STR_CHEAT_INFLATION_INCOME_QUERY_CAPT                           :{WHITE}Change inflation income factor
 STR_CHEAT_TOWN_RATING                                           :{LTBLUE}Town local authority ratings fixed at Outstanding: {ORANGE}{STRING}
+STR_CHEAT_EDIT_TOWNS                                            :{LTBLUE}Edit towns (found large towns and expand existing towns): {ORANGE}{STRING}
 
 ##default-translation STR_EMPTY
 STR_NETWORK_MESSAGE_GIVE_MONEY_RECEIVE                          :*** {RAW_STRING} gave your company {CURRENCY_LONG}
@@ -1394,6 +1395,7 @@ STR_NEWGRF_SETTINGS_MOVEUP_TOOLTIP_EXTRA                        :{BLACK}{STRING}
 STR_NEWGRF_SETTINGS_MOVEDOWN_TOOLTIP_EXTRA                      :{BLACK}{STRING}.{}Ctrl+Click to move to the bottom.
 
 STR_TOWN_VIEW_NOISE_IN_TOWN_NO_LIMIT                            :{BLACK}Noise limit in town: {ORANGE}{COMMA}
+STR_TOWN_VIEW_EXPAND_ATTEMPTS                                   :{COMMA} growth attempts
 
 STR_TOWN_VIEW_CARGO_LAST_PRODUCTION_INTERVAL_MAX                :{BLACK}{CARGO_LIST} last interval: {ORANGE}{COMMA}{BLACK}  max: {ORANGE}{COMMA}
 

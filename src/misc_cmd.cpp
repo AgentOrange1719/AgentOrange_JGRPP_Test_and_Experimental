@@ -314,6 +314,10 @@ CommandCost CmdCheatSetting(DoCommandFlags flags, CheatNumbers cheat, uint32_t v
 			cht = &_cheats.town_rating;
 			break;
 
+		case CHT_EDIT_TOWNS:
+			cht = &_cheats.edit_towns;
+			break;
+
 		default:
 			return CMD_ERROR;
 	}
@@ -329,6 +333,10 @@ CommandCost CmdCheatSetting(DoCommandFlags flags, CheatNumbers cheat, uint32_t v
 		if (cheat == CHT_TOWN_RATING) {
 			extern void UpdateAllTownRatings();
 			UpdateAllTownRatings();
+		}
+		if (cheat == CHT_EDIT_TOWNS) {
+			InvalidateWindowData(WindowClass::FoundTown, 0);
+			InvalidateWindowClassesData(WindowClass::TownView);
 		}
 	}
 	return CommandCost();

@@ -15,9 +15,14 @@
 #include "town.h"
 #include "town_type.h"
 
+#include <array>
+
 enum class TownAcceptanceEffect : uint8_t;
 enum TownSettingOverrideFlags : uint8_t;
 using HouseID = uint16_t;
+
+/** Fixed attempt counts offered by the town expansion dropdowns. */
+inline constexpr std::array<uint16_t, 4> TOWN_EXPANSION_ATTEMPT_COUNTS = {15, 30, 60, 150};
 
 struct HouseIDCmdVector {
 	static constexpr bool command_payload_as_ref = true;
@@ -40,6 +45,7 @@ DEF_CMD_TUPLE_NT(Commands::TownGrowthRate,                CmdTownGrowthRate,    
 DEF_CMD_TUPLE_NT(Commands::TownRating,                    CmdTownRating,                   CMD_LOG_AUX | CMD_DEITY, CommandType::OtherManagement,       CmdDataT<TownID, CompanyID, int16_t>)
 DEF_CMD_TUPLE_NT(Commands::TownSetText,                   CmdTownSetText,   CMD_LOG_AUX | CMD_STR_CTRL | CMD_DEITY, CommandType::OtherManagement,       CmdDataT<TownID, EncodedString>)
 DEF_CMD_TUPLE_NT(Commands::ExpandTown,                    CmdExpandTown,                                 CMD_DEITY, CommandType::LandscapeConstruction, CmdDataT<TownID, uint32_t, TownExpandModes>)
+DEF_CMD_TUPLE_NT(Commands::ExpandTownWithAttempts,        CmdExpandTownWithAttempts,                     CMD_DEITY, CommandType::LandscapeConstruction, CmdDataT<TownID, uint16_t, TownExpandModes>)
 DEF_CMD_TUPLE_NT(Commands::DeleteTown,                    CmdDeleteTown,                               CMD_OFFLINE, CommandType::LandscapeConstruction, CmdDataT<TownID>)
 DEF_CMD_TUPLE   (Commands::PlaceHouse,                    CmdPlaceHouse,                                 CMD_DEITY, CommandType::OtherManagement,       CmdDataT<HouseID, bool, TownID, bool>)
 DEF_CMD_TUPLE   (Commands::PlaceHouseArea,                CmdPlaceHouseArea,                             CMD_DEITY, CommandType::OtherManagement,       CmdDataT<TileIndex, HouseIDCmdVector, bool, TownID, bool, bool>)
